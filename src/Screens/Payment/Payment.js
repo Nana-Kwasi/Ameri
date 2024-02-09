@@ -7,7 +7,7 @@ export default function Payment() {
 
   return (
     <View style={styles.container}>
-      {/* <Image source={require("../../../assets/pay.png")} style={styles.image} /> */}
+      <Image source={require("../../../assets/pay.png")} style={styles.image} />
 
       <Paystack
         paystackKey="pk_test_7953d775d4609d532c07d35f9a35760a7bde8d84"

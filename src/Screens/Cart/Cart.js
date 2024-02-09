@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import React, { useState,useEffect,useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { Card } from 'react-native-paper';
@@ -15,37 +9,37 @@ import { connect, useDispatch } from 'react-redux';
 const CartScreen = ({  route, navigation }) => {
   const dispatch = useDispatch();
 
-    console.log(route,'CART');
+    // console.log(route,'CART');
   
     const { cartItems } = route.params || { cartItems: [] };
     const [locationName, setLocationName] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    
     useEffect(() => {
-      // Dispatch the 'SET_CART_ITEMS' action when the component mounts
+      console.log('Dispatched Action:', route.params?.cartItems);
       dispatch({ type: 'SET_CART_ITEMS', payload: route.params?.cartItems || [] });
     }, [dispatch, route.params?.cartItems]);
   
     useEffect(() => {
       const loadCartItems = async () => {
         try {
-
           const storedCartItems = await AsyncStorage.getItem('cartItems');
-          if (storedCartItems !== null) {
+          if (storedCartItems !== null && aggregatedCartItems.length === 0) {
             dispatch({ type: 'SET_CART_ITEMS', payload: JSON.parse(storedCartItems) });
           }
-        }   catch (error) {
-
+        } catch (error) {
           console.error('Error loading cart items:', error);
         }
       };
-  
+    
       loadCartItems();
-    }, [dispatch]);
+    }, [dispatch, aggregatedCartItems]);
+    
 
 
-
-  // Use AsyncStorage to load stored data on component mount
+  
   useEffect(() => {
+    console.log('Current State:', cartItems);
     const storeData = async () => {
       try {
         await AsyncStorage.setItem('cartItems', JSON.stringify(cartItems));
@@ -61,10 +55,10 @@ const CartScreen = ({  route, navigation }) => {
     const fetchLocation = useCallback(async () => {
       try {
         const location = await Location.getCurrentPositionAsync({});
-        console.log('Current Location:', location);
+        // console.log('Current Location:', location);
   
         const geocodingResult = await reverseGeocode(location.coords);
-        console.log('Geocoding Result:', geocodingResult);
+        // console.log('Geocoding Result:', geocodingResult);
         setLocationName(geocodingResult);
   
         setIsLoading(false);
@@ -77,17 +71,13 @@ const CartScreen = ({  route, navigation }) => {
     useEffect(() => {
       fetchLocation();
   
-      // Cleanup effect
+    
       return () => {
         setLocationName(null);
         setIsLoading(true);
       };
     }, [fetchLocation]);
-
-
-
-  
-    const reverseGeocode = async (coords) => {
+const reverseGeocode = async (coords) => {
       try {
         const geocoding = await Location.reverseGeocodeAsync(coords);
   
@@ -126,11 +116,7 @@ const CartScreen = ({  route, navigation }) => {
         };
       }
     };
-
-
-  // Use the state hook to manage aggregatedCartItems
-  const [aggregatedCartItems, setAggregatedCartItems] = useState(() => {
-    // Initialize based on route parameters only if not already loaded from AsyncStorage
+const [aggregatedCartItems, setAggregatedCartItems] = useState(() => {
     if (cartItems.length > 0) {
       const aggregatedItems = [];
       cartItems.forEach((item) => {
@@ -148,7 +134,7 @@ const CartScreen = ({  route, navigation }) => {
   });
 
 
-  // Calculate the total price of items in the cart
+
   const total = aggregatedCartItems.reduce((sum, item) => sum + item.price * item.count, 0);
 
   const handleQuantityChange = (itemId, action) => {
@@ -162,18 +148,28 @@ const CartScreen = ({  route, navigation }) => {
       return item;
     });
 
-    // Update the state with the new aggregatedCartItems
+ 
     setAggregatedCartItems(updatedCartItems);
   };
 
   const handleRemoveItem = (itemId) => {
-    // Remove the item with the specified ID from the cart
+
     const updatedCartItems = aggregatedCartItems.filter((item) => item.id !== itemId);
     setAggregatedCartItems(updatedCartItems);
-    
-    // Dispatch an action to update the global state in Redux
-    dispatch({ type: 'REMOVE_FROM_CART', payload: itemId });
+  
+    // Update AsyncStorage with the modified cart items
+    AsyncStorage.setItem('cartItems', JSON.stringify(updatedCartItems))
+      .then(() => {
+        // Dispatch an action to update the global state in Redux
+        console.log("Dispatching REMOVE_FROM_CART action for itemId:", itemId);
+        dispatch({ type: 'REMOVE_FROM_CART', payload: itemId });
+      })
+      .catch((error) => {
+        console.error('Error updating AsyncStorage:', error);
+      });
   };
+  
+  
   
   
 
@@ -194,7 +190,7 @@ const CartScreen = ({  route, navigation }) => {
           <TouchableOpacity onPress={() => handleQuantityChange(item.id, 'increment')}>
             <Text style={styles.quantityButton}>+</Text>
           </TouchableOpacity>
-          {/* Button to remove item */}
+         
           <TouchableOpacity
             onPress={() =>
               Alert.alert(
