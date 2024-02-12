@@ -16,6 +16,8 @@ import {
 import * as Location from 'expo-location';
 import Icon from 'react-native-vector-icons/FontAwesome'; 
 import { useDispatch } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const WelcomeScreen = ({ navigation, route }) => {
   const [productData, setProductData] = useState(generateProductData());
@@ -34,22 +36,27 @@ const WelcomeScreen = ({ navigation, route }) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    // Fetch or update cart items when the WelcomeScreen is in focus
+    const loadCartItems = async () => {
+      try {
+        const storedCartItems = await AsyncStorage.getItem('cartItems');
+        if (storedCartItems !== null) {
+          setCartItems(JSON.parse(storedCartItems));
+        }
+      } catch (error) {
+        console.error('Error loading cart items:', error);
+      }
+    };
+  
+    loadCartItems();
+  
     const unsubscribe = navigation.addListener('focus', () => {
-      // Fetch the updated cart items and favorited products when the WelcomeScreen is in focus
-      setFavoritedProducts(route.params?.favoritedProducts || []);
-  
-      // Update the Redux store with the latest cart items
-      const updatedCartItems = route.params?.cartItems || [];
-      dispatch({ type: 'SET_CART_ITEMS', payload: updatedCartItems });
-  
-      // Log the dispatch action and payload
-      console.log('Dispatch Action: SET_CART_ITEMS');
-      console.log('Dispatch Payload:', updatedCartItems);
+      loadCartItems();
     });
   
     // Cleanup effect
     return unsubscribe;
-  }, [navigation, route.params?.cartItems, route.params?.favoritedProducts]);
+  }, [navigation, route.params?.cartItems]);
   
 
   // useEffect(() => {
@@ -226,6 +233,9 @@ const WelcomeScreen = ({ navigation, route }) => {
     };
   
     setCartItems((prevItems) => [...prevItems, productWithImage]);
+  
+    // Update AsyncStorage with the new cart items
+    AsyncStorage.setItem('cartItems', JSON.stringify([...cartItems, productWithImage]));
   };
   
 
